@@ -1,0 +1,116 @@
+---
+- name: Installing and setting up environment GbarrBot
+  hosts: localhost
+  vars_files:
+    - users.yml
+  become: true
+  tasks:
+    - name: Ensure /etc/apt/sources.list exists
+      stat:
+        path: /etc/apt/sources.list
+      register: sources_list_stat
+
+    - name: Comment out "cdrom" lines in /etc/apt/sources.list
+      lineinfile:
+        path: /etc/apt/sources.list
+        state: present
+        regexp: '^(\s*)deb[^\n]*cdrom'
+        line: '# \g<0>'
+      when: sources_list_stat.stat.exists
+
+    - name: udate APT package index
+      apt:
+        update_cache: true
+      ignore_errors: true
+
+    - name: Installing packages
+      apt:
+        name:
+          - guake
+          - docker.io
+          - python3
+          - python3-pip
+          - ansible
+          - golang
+          - vim
+        state: present
+      ignore_errors: true
+
+    - name: Installing aliases
+      copy:
+        src: ../aliases/.bash_aliases
+        dest: /home/{{ userGbarr }}/.bash_aliases
+        mode: '0644'
+      when: userGbarr is defined
+
+
+- name: Docker setup
+  import_playbook: setup/playbook-docker.yml
+
+- name: Kubectl setup
+  import_playbook: setup/playbook-kubectl.yml
+
+- name: Minikube setup
+  import_playbook: setup/playbook-minikube.yml
+
+
+- name: Ansible configurating modules
+  hosts: localhost
+  tasks:
+    - name: update packaging
+      pip:
+        name: packaging
+        state: latest 
+
+    - name: Uninstall kubernetes client
+      pip: 
+        name: kubernetes
+        state: absent
+      ignore_errors: true
+
+    - name: Installing openshift for k8s ansible
+      pip: 
+        name: openshift
+        version: '0.11.0'
+        state: present
+     
+
+- name: Git
+  hosts: localhost
+  become: true
+  vars_files:
+    - security.yml
+    - users.yml
+  tasks:
+      - name: Check file gbarr to exist
+        stat: 
+          path: /home/{{ userGbarr }}/Downloads/gbarr
+        register: gbarr_file
+      
+      - name: Create directory
+        file: 
+          path: /home/{{ userGbarr }}/Downloads/gbarr
+          state: directory
+          mode: '0755'
+        when: not gbarr_file.stat.exists
+        become_user: {{ userGbarr }}
+
+      - name: Git add
+        git:
+          dest: /home/{{ userGbarr }}/Downloads/gbarr
+          clone: true
+          repo: https://{{ gitTocken }}@github.com/synestal/Gbarrbot-v2.git 
+          remote:  gitBot
+          version: CICD
+        when: not gbarr_file.stat.exists
+        become_user: {{ userGbarr }}
+
+
+- name: Reboot after work
+  hosts: localhost
+  tasks:
+    - name: Reboot
+      reboot:
+        msg: "Ansible provocated reboot after work"
+        reboot_timeout: 600
+      when: ansible_hostname != 'localhost'

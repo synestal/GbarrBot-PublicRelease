@@ -1,0 +1,51 @@
+---
+- name: Docker setup
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Update packaging
+      pip:
+        name: packaging
+        state: latest 
+    
+    - name: Install saver for iptable rules
+      apt: 
+        name: iptables-persistent
+        state: latest
+    
+    - name: Install Docker Python module
+      pip:
+        name: docker
+
+    - name: Create Docker local folder
+      file:
+        path: /dockerrepo
+        state: directory
+        mode: '0755'
+
+    - name: Open 5000 port in iptables
+      shell: |
+        iptables -I INPUT -p tcp --dport 5000 -j ACCEPT && \
+        netfilter-persistent save
+    
+    - name: Restart of docker daemon 
+      systemd:
+        name: docker
+        state: restarted
+
+    - name: Stop existing Docker registry container
+      docker_container:
+        name: registry
+        state: absent
+      ignore_errors: yes  # Ignore errors if the container does not exist
+
+    - name: Run Docker registry
+      docker_container:
+        name: registry
+        image: registry:2
+        state: started
+        restart_policy: always
+        published_ports:
+          - "5000:5000"
+        volumes:
+          - /dockerrepo:/var/lib/registry

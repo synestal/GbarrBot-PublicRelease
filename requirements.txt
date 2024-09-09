@@ -1,0 +1,8 @@
+# Библиотеки проекта
+pandas
+requests
+vk-api
+datetime
+prometheus-fastapi-instrumentator
+openpyxl
+

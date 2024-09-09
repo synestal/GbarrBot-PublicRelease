@@ -1,0 +1,46 @@
+---
+- name: Minikube setup
+  hosts: localhost 
+  vars_files:
+    - ../users.yml
+  tasks:
+    - name: Download minikube
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: ./minikube
+        mode: 'u+x'  # Make it executable
+
+    - name: Create directory for /usr/local/bin if it does not exist
+      file:
+        path: /usr/local/bin
+        state: directory
+        mode: '0755'
+      become: true
+
+    - name: Install minikube
+      shell: install minikube /usr/local/bin/
+      become: true
+    
+    - name: Delete minikube install file
+      file:
+        path: ./minikube
+        state: absent
+
+    - name: Add user to docker group
+      user:
+        name: "{{ userGbarr }}"
+        groups: docker
+        append: yes
+      become: true
+
+    - name: Start minikube
+      shell: minikube start --ports=5001:5000 --driver=docker
+      become: true
+      become_user: "{{ userGbarr }}"
+
+    - name: Run docker registry in minikube
+      shell: |
+        minikube ssh -- docker run --restart=always -d -p 5000:5000 --name registry registry:2
+      become: true
+      become_user: "{{ userGbarr }}"
+      ignore_errors: true

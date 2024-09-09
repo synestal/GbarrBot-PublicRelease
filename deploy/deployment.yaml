@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gbarbotkube
+  labels:
+    app: gbar-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gbarbot
+  template:
+    metadata:
+      labels:
+        app: gbarbot
+    spec:
+      containers:
+      - name: gbarbotkube
+        image: localhost:5000/gbarbot:v3.1
+        ports:
+        - containerPort: 5000

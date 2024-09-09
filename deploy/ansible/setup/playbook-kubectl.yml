@@ -1,0 +1,17 @@
+---
+- name: kubectl setup
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Update APT cache and upgrade packages
+      apt:
+        upgrade: dist
+        update_cache: true
+        cache_valid_time: 86400
+
+    - name: Upload via curl
+      get_url:
+        url: https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+      register: kubernetes_app

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: static-web-gbar2
+  namespace: gbarsolotest
+  labels:
+    app: gbar-web
+spec:
+  containers:
+    - name: gbartest
+      image: localhost:5000/gbartest:v2
+      ports:
+        - name: gbartest
+          containerPort: 5000
+          protocol: TCP

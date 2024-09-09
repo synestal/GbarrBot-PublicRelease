@@ -1,0 +1,44 @@
+---
+- name: Docker container build and push to localhost and kuber stores
+  hosts: localhost
+  become: true
+  vars_files:
+    - users.yml
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: Build Docker image
+      docker_image:
+        path: ../..
+        dockerfile: Dockerfile
+        name: gbarbot
+        tag: v3.1
+      register: build_result
+      become_user: '{{ userGbarr }}'
+      ignore_errors: yes  # Ignore error if the image already exists
+    - name: Push Docker image to kuber local registry
+      docker_image:
+        name: gbarbot
+        tag: v3.1
+        repository: localhost:5001/gbarbot
+        push: true
+      become_user: '{{ userGbarr }}'
+      when: build_result is succeeded  # Only push if the build was successful
+
+    - name: Push Docker image to localhost registry
+      docker_image:
+        name: gbarbot
+        tag: v3.1
+        repository: localhost:5000/gbarbot
+        push: true
+      become_user: '{{ userGbarr }}'
+      when: build_result is succeeded  # Only push if the build was successful
+
+    - name: Kubernetes build
+      k8s: 
+        state: present
+        namespace: default
+        src: ../deployment.yaml
+      become_user: '{{ userGbarr }}'
+      when: build_result is succeeded  # Only push if the build was successful
+

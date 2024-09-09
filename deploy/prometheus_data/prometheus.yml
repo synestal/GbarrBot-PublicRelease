@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s # интервал сбора и очистки данных с целей
+  evaluation_interval: 15s #  интервал вычисления правил сбора
+
+rule_files:
+  # - "first.rules"
+  # - "second.rules"
+
+scrape_configs:
+  - job_name: prometheus # имя задания, которое будет собирать данные
+    static_configs: # целевые адреса целей в рамках указанного задания
+     - targets: ['localhost:9090']
+  - job_name:       'node'
+
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 5s
+
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          group: 'production'
+
