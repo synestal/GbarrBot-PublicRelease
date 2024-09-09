@@ -1,0 +1,33 @@
+name: lintingGbarr
+run-name: ${{ github.actor }} is linting the gbarr bot
+on: [push]
+jobs:
+  installing_libs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install lang
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install pip
+        run: |
+          sudo apt install pip -y
+          python --version
+      - name: Copy repository
+        uses: 
+          actions/checkout@v4
+      - name: Install libs
+        run: |
+          mkdir tmp
+          pip freeze > tmp/requirements.txt
+          pip install -r tmp/requirements.txt
+          pip install -r requirements.txt
+      - name: Linter
+        id: linter
+        run: |
+          pip install pylint
+          pylint $(git ls-files '*.py')
+        continue-on-error: true
+      - name: Writing-final
+        run: |
+          echo ${{steps.linter.outputs.*}}
